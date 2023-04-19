@@ -324,7 +324,7 @@ void pc2(const SectorParameters sector_parameters, fr_t* leaves, fr_t* digests,
   gpu.spawn([&, leaves]() {
     for (int config_idx = 0; config_idx < configs; config_idx++) {
       for (int batch_idx = 0; batch_idx < batches; batch_idx++) {
-std::cout << "vmx: tree_c: " << config_idx << " " << batch_idx << " waiting to receive data " std::endl;
+std::cout << "vmx: tree_c: " << config_idx << " " << batch_idx << " waiting to receive data " << std::endl;
         fr_t* cur_leaves = tree_c_memory_channel.recv();
 
 std::cout << "vmx: tree_c: " << config_idx << " " << batch_idx << " about to call the GPU " << std::endl;
