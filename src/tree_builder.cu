@@ -138,6 +138,7 @@ public:
 
     size_t next_row_len = leaves_len / this->column_poseidon.arity;
 
+std::cout << "vmx: tree_c: column tree builder: use cuda?: " << cuda << std::endl;
     if (cuda) {
       const size_t sub_tree_len = leaves_len / this->cutoff_leaves_len;
       const size_t sub_digests_len =

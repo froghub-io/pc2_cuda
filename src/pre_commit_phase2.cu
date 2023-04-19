@@ -327,7 +327,7 @@ void pc2(const SectorParameters sector_parameters, fr_t* leaves, fr_t* digests,
 std::cout << "vmx: tree_c: " << config_idx << " " << batch_idx << " waiting to receive data " << std::endl;
         fr_t* cur_leaves = tree_c_memory_channel.recv();
 
-std::cout << "vmx: tree_c: " << config_idx << " " << batch_idx << " about to call the GPU " << std::endl;
+std::cout << "vmx: tree_c: " << config_idx << " " << batch_idx << " about to call the GPU: batch leaves len: " << tree_c_batch_leaves_len << std::endl;
         column_tree_builder.build_column_tree_with_preimages(
           cur_leaves,
           tree_c_batch_leaves_len,
