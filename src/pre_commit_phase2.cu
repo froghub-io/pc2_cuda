@@ -324,28 +324,25 @@ void pc2(const SectorParameters sector_parameters, fr_t* leaves, fr_t* digests,
   gpu.spawn([&, leaves]() {
     for (int config_idx = 0; config_idx < configs; config_idx++) {
       for (int batch_idx = 0; batch_idx < batches; batch_idx++) {
-std::cout << "vmx: tree_c: waiting to receive data: batch: " << batch_idx << std::endl;
+std::cout << "vmx: tree_c: " << config_dix " " << batch_idx << " waiting to receive data " std::endl;
         fr_t* cur_leaves = tree_c_memory_channel.recv();
 
-std::cout << "vmx: tree_c: about to call the GPU: batch: " << batch_idx << std::endl;
+std::cout << "vmx: tree_c: " << config_dix " " << batch_idx << " about to call the GPU " << std::endl;
         column_tree_builder.build_column_tree_with_preimages(
           cur_leaves,
           tree_c_batch_leaves_len,
           digests + batch_idx * tree_c_batch_digests_len,
           true
         );
-std::cout << "vmx: tree_c: about to synchronize: batch: " << batch_idx << std::endl;
         cudaDeviceSynchronize();
-std::cout << "vmx: tree_c: synchronizes: batch: " << batch_idx << std::endl;
+std::cout << "vmx: tree_c: " << config_dix " " << batch_idx << " about to call the GPU: done." << std::endl;
 
         tree_c_merge[config_idx * batches + batch_idx] =
           digests[batch_idx * tree_c_batch_digests_len +
                   tree_c_batch_digests_len - 1];
 
-std::cout << "vmx: tree_c: about to send data: batch: " << batch_idx << std::endl;
         tree_c_compute_channel.send(digests +
                                     batch_idx * tree_c_batch_digests_len);
-std::cout << "vmx: tree_c: sent data: batch: " << batch_idx << std::endl;
       }
     }
 
