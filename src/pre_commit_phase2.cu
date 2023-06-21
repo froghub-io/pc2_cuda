@@ -178,7 +178,7 @@ void write_tree_c_root_to_disk(const int config_idx, const int configs,
 
 void tree_r_prepare_data(fr_t* leaves, const size_t sector_size,
                          const int configs, const int config_idx,
-                         const int layers, std::string cache_path) {
+                         std::string cache_path, std::string replica_path) {
   size_t bytes_to_read = sector_size / configs;
   const size_t leaves_to_read = bytes_to_read / sizeof(fr_t);
   size_t file_offset = bytes_to_read * config_idx;
@@ -190,8 +190,7 @@ void tree_r_prepare_data(fr_t* leaves, const size_t sector_size,
     bytes_to_read   = sector_size;
   }
 
-  const std::string layer_file = cache_path + get_layer_file_name(layers - 1);
-  int file = open(layer_file.c_str(), O_RDONLY);
+  int file = open(replica_path.c_str(), O_RDONLY);
   fr_t* file_ptr = reinterpret_cast<fr_t*>(mmap(NULL, bytes_to_read,
     PROT_READ, MAP_PRIVATE, file, file_offset));
 
@@ -217,7 +216,8 @@ void write_tree_r_to_disk(const int config_idx, const int configs,
 extern "C"
 void pc2(const SectorParameters sector_parameters, fr_t* leaves, fr_t* digests,
          fr_t* digests_r, fr_t roots[3],
-         std::string output_path, std::string cache_path) {
+         std::string output_path, std::string cache_path,
+         std::string replica_path) {
   const gpu_t& gpu = select_gpu((size_t)0);
 
   const size_t sector_size   = sector_parameters.sector_size;
@@ -313,8 +313,8 @@ void pc2(const SectorParameters sector_parameters, fr_t* leaves, fr_t* digests,
         sector_size,
         configs,
         config_idx,
-        layers,
-        cache_path
+        cache_path,
+        replica_path
       );
 
       tree_r_memory_channel.send(leaves + tree_r_leaves_len * config_idx);

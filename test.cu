@@ -13,7 +13,7 @@ extern "C" void free_pinned_memory(fr_t*&, fr_t*&, fr_t*&);
 extern "C" void test_output_data(const SectorParameters,
                                  std::string, std::string);
 extern "C" void pc2(const SectorParameters, fr_t*, fr_t*, fr_t*, fr_t[3],
-                    std::string, std::string);
+                    std::string, std::string, std::string);
 
 #ifndef __CUDA_ARCH__
 
@@ -58,9 +58,10 @@ int main(int argc, char* argv[]) {
   int  opt   = 0;
   std::string cache_path  = "./";
   std::string output_path = "./";
+  std::string replica_path = "./sealed-file";
   std::string sector_size = "2KiB";
 
-  while ((opt = getopt(argc, argv, "i:o:s:h")) != -1) {
+  while ((opt = getopt(argc, argv, "i:o:s:r:h")) != -1) {
     switch(opt) {
       case 'i':
         std::cout << "input_path input " << optarg << std::endl;
@@ -69,6 +70,10 @@ int main(int argc, char* argv[]) {
       case 'o':
         std::cout << "output_path input " << optarg << std::endl;
         output_path = optarg;
+        break;
+      case 'r':
+        std::cout << "replica_path input " << optarg << std::endl;
+        replica_path = optarg;
         break;
       case 's':
         std::cout << "sector_size input " << optarg << std::endl;
@@ -81,6 +86,7 @@ int main(int argc, char* argv[]) {
         std::cout << "Usage: " << argv[0] << " [OPTIONS]" << std::endl;
         std::cout << "-h        Print help message" << std::endl;
         std::cout << "-i <path> Path to cached layer data files " << std::endl;
+        std::cout << "-r <path> Path to encoded replica (sealed file)" << std::endl;
         std::cout << "-o <path> Path to place tree files" << std::endl;
         std::cout << "-s <size> Sector Size (2KiB, 32GiB, etc) " << std::endl;
         break;
@@ -88,6 +94,7 @@ int main(int argc, char* argv[]) {
   }
 
   std::cout << "input_path  = " << cache_path << std::endl;
+  std::cout << "replica_path  = " << replica_path << std::endl;
   std::cout << "output_path = " << output_path << std::endl;
   std::cout << "sector_size = " << sector_size << std::endl;
 
@@ -104,7 +111,7 @@ int main(int argc, char* argv[]) {
 
   TIME_START;
   pc2(sector_parameters, leaves, digests_c, digests_r, roots,
-      output_path, cache_path);
+      output_path, cache_path, replica_path);
   TIME_STOP("Pre-commit phase 2");
 
   TIME_START;
