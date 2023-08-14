@@ -19,8 +19,8 @@ do
 done
 
 if [ ! -f "blst/libblst.a" ]; then
-    git clone git@github.com:supranational/sppark.git
-    git clone git@github.com:supranational/blst.git
+    git clone https://github.com/supranational/sppark.git
+    git clone https://github.com/supranational/blst.git
     cd blst
     sh build.sh
     cd ..
