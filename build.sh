@@ -47,15 +47,7 @@ mkdir -p lib
 sudo cp blst/libblst.a lib/libblst.a
 sudo cp libpc2.a lib/libpc2.a
 
-if [ -L "/usr/lib/libblst.a" ]; then
-    sudo rm -rf /usr/lib/libblst.a
-fi
-
-if [ -L "/usr/lib/libpc2.a" ]; then
-    sudo rm -rf /usr/lib/libpc2.a
-fi
-
-sudo ln -s $(pwd)/lib/libblst.a /usr/lib/libblst.a
-sudo ln -s $(pwd)/lib/libpc2.a /usr/lib/libpc2.a
+sudo cp $(pwd)/lib/libblst.a /usr/lib/libblst.a
+sudo cp $(pwd)/lib/libpc2.a /usr/lib/libpc2.a
 
 sudo ldconfig
