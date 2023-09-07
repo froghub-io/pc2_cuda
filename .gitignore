@@ -35,3 +35,7 @@ blst
 sppark
 run_pc2
 sc*
+.history
+.vscode
+target
+lib

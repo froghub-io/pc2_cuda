@@ -5,8 +5,8 @@
 #include <cassert>
 #include <map>
 
-#include <bls12-381.hpp>
-#include "../utils/parser.cpp"
+#include <ff/bls12-381.hpp>
+#include "parser.cpp"
 
 static int get_partial_rounds(const int arity) {
   const std::map<int, int> partial_rounds_map = {

@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0, see LICENSE for details.
 // SPDX-License-Identifier: Apache-2.0
 
-#include <all_gpus.cpp>
+#include <util/all_gpus.cpp>
 
 #ifndef __CUDA_ARCH__
 
@@ -14,7 +14,20 @@
 
 #include "tree_builder.cu"
 #include "parameters.cpp"
-#include "thread_pool_t.hpp"
+#include "util/thread_pool_t.hpp"
+#include <chrono>
+#include <sstream>
+
+#define TIME_TYPE std::chrono::time_point<std::chrono::high_resolution_clock>
+#define TIME_NOW std::chrono::high_resolution_clock::now()
+#define TIME_ELAPSED(start, end) \
+  std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
+
+#define TIME_INIT TIME_TYPE start; TIME_TYPE end;
+#define TIME_START start = TIME_NOW
+#define TIME_STOP(str) \
+  end = TIME_NOW; \
+  std::cout << str << " :" << TIME_ELAPSED(start, end) << " ms" << std::endl;
 
 static const size_t page_size = sysconf(_SC_PAGE_SIZE);
 
@@ -299,13 +312,13 @@ void pc2(const SectorParameters sector_parameters, fr_t* leaves, fr_t* digests,
           );
         }
 
-        tree_c_memory_channel.send(leaves +
-                                   tree_c_batch_leaves_len * batch_idx);
+        tree_c_memory_channel.send(leaves + tree_c_batch_leaves_len * batch_idx);
       }
     }
 
-    for (int batch_idx = 0; batch_idx < batches; batch_idx++)
+    for (int batch_idx = 0; batch_idx < batches; batch_idx++) {
       file_write_channel.recv();
+    }
 
     for (int config_idx = 0; config_idx < configs; config_idx++) {
       tree_r_prepare_data(
@@ -354,8 +367,7 @@ void pc2(const SectorParameters sector_parameters, fr_t* leaves, fr_t* digests,
 
       cudaDeviceSynchronize();
 
-      tree_r_2nd_last_row[config_idx] =
-        digests_r[config_idx * tree_r_digests_len + tree_r_digests_len - 1];
+      tree_r_2nd_last_row[config_idx] = digests_r[config_idx * tree_r_digests_len + tree_r_digests_len - 1];
 
       tree_r_compute_channel.send(digests_r + config_idx * tree_r_digests_len);
     }
@@ -395,9 +407,10 @@ void pc2(const SectorParameters sector_parameters, fr_t* leaves, fr_t* digests,
     }
   });
 
-  for (int all_receive = 0; all_receive < configs * (batches + 1);
-      all_receive++)
+  for (int all_receive = 0; all_receive < configs * (batches + 1); all_receive++) {
     all_complete.recv();
+  }
+  printf("all_complete\n");
 
   if (batches > 1) {
     for (int config_idx = 0; config_idx < configs; config_idx++) {
@@ -424,6 +437,7 @@ void pc2(const SectorParameters sector_parameters, fr_t* leaves, fr_t* digests,
       tree_c_2nd_last_row[config_idx] = tree_c_merge[config_idx];
     }
   }
+  printf("batches_complete\n");
 
   if (configs > 1) {
     TreeBuilder tree_builder_last(configs);
@@ -444,6 +458,7 @@ void pc2(const SectorParameters sector_parameters, fr_t* leaves, fr_t* digests,
     roots[0] = tree_c_2nd_last_row[0];
     roots[1] = tree_r_2nd_last_row[0];
   }
+  printf("configs_complete\n");
 
   TreeBuilder comm_r_builder(2);
   comm_r_builder.build_tree_with_preimages(roots, 2, &roots[2], false);
@@ -451,82 +466,6 @@ void pc2(const SectorParameters sector_parameters, fr_t* leaves, fr_t* digests,
   free(tree_c_2nd_last_row);
   free(tree_r_2nd_last_row);
   free(tree_c_merge);
-}
-
-extern "C"
-void test_output_data(const SectorParameters sector_parameters,
-                      std::string output_path, std::string cache_path) {
-
-  const size_t sector_size = sector_parameters.sector_size;
-  const int layers = sector_parameters.layers;
-  const int column_arity = sector_parameters.column_arity;
-  const int tree_arity = sector_parameters.tree_arity;
-  const int configs = sector_parameters.configs;
-  const int rows_to_discard = sector_parameters.rows_to_discard;
-
-  const size_t leaves_len = sector_size / sizeof(fr_t);
-  // number of leaf nodes for one configs'th of tree C
-
-  const size_t tree_c_leaves_len = leaves_len * layers / configs;
-  const size_t tree_r_leaves_len = sector_size / sizeof(fr_t) / configs;
-
-  ColumnTreeBuilder column_tree_builder(column_arity, tree_arity);
-  TreeBuilder tree_builder(tree_arity);
-
-  size_t tree_c_digests_len =
-    column_tree_builder.calc_column_digests_len(tree_c_leaves_len,
-                                                column_arity, tree_arity);
-
-  size_t tree_r_digests_len =
-    tree_builder.calc_digests_len(tree_r_leaves_len, tree_arity);
-
-  size_t rows_to_discard_offset = 0;
-  for (size_t i = 0; i < rows_to_discard; i++) {
-    rows_to_discard_offset +=
-      tree_r_leaves_len / pow(static_cast<double>(tree_arity), i + 1);
-  }
-
-  tree_r_digests_len -= rows_to_discard_offset;
-
-  fr_t* _correct_ptr = (fr_t*)malloc(sizeof(fr_t) * tree_c_digests_len);
-  fr_t* _test_ptr = (fr_t*)malloc(sizeof(fr_t) * tree_c_digests_len);
-
-  for (int config_idx = 0; config_idx < configs; config_idx++) {
-    read_file(tree_c_digests_len * sizeof(fr_t), _correct_ptr,
-              cache_path + get_tree_c_file_name(config_idx, configs));
-    read_file(tree_c_digests_len * sizeof(fr_t), _test_ptr,
-              output_path + get_tree_c_file_name(config_idx, configs));
-
-    uint32_t* correct_ptr = reinterpret_cast<uint32_t*>(_correct_ptr);
-    uint32_t* test_ptr = reinterpret_cast<uint32_t*>(_test_ptr);
-
-    for (size_t i = 0;
-         i < tree_c_digests_len * sizeof(fr_t) / sizeof(uint32_t); i++) {
-      if (correct_ptr[i] != test_ptr[i]) {
-        printf("tree c failure at index %zu/%zu, config %d\n",
-               i / (sizeof(fr_t) / sizeof(uint32_t)),
-               i % (sizeof(uint32_t)), config_idx);
-        exit(2);
-      }
-    }
-
-    read_file(tree_r_digests_len * sizeof(fr_t), _correct_ptr,
-              cache_path + get_tree_r_file_name(config_idx, configs));
-    read_file(tree_r_digests_len * sizeof(fr_t), _test_ptr,
-              output_path + get_tree_r_file_name(config_idx, configs));
-
-    for (size_t i = 0; i < tree_r_digests_len; i++) {
-      if (correct_ptr[i] != test_ptr[i]) {
-        printf("tree r failure at index %zu/%zu, config %d\n",
-               i / (sizeof(fr_t) / sizeof(uint32_t)), i % (sizeof(uint32_t)),
-               config_idx);
-        exit(3);
-      }
-    }
-  }
-
-  free(_correct_ptr);
-  free(_test_ptr);
 }
 
 extern "C"
@@ -565,6 +504,38 @@ void free_pinned_memory(fr_t*& main_ptr, fr_t*& digests_ptr,
   cudaFreeHost(main_ptr);
   cudaFreeHost(digests_ptr);
   cudaFreeHost(digests_r_ptr);
+}
+
+extern "C"
+int treecr_c(const char* cache_path, const char* replica_path, const char* sector_size) {
+  printf("sector_size: %s\n", sector_size);
+  printf("cache_path: %s\n", cache_path);
+  printf("replica_path: %s\n", replica_path);
+
+  std::string output_path = cache_path;
+  std::cout << "output_path: " << output_path << std::endl;
+
+  fr_t* leaves = nullptr, * digests_c = nullptr, * digests_r = nullptr;
+  fr_t roots[3];
+
+  TIME_INIT;
+
+  SectorParameters sector_parameters = get_sector_parameters(sector_size);
+
+  TIME_START;
+  allocate_pinned_memory(sector_parameters, leaves, digests_c, digests_r);
+  TIME_STOP("Pinned memory allocation");
+
+  TIME_START;
+  pc2(sector_parameters, leaves, digests_c, digests_r, roots,
+      output_path, cache_path, replica_path);
+  TIME_STOP("Pre-commit phase 2");
+
+  TIME_START;
+  free_pinned_memory(leaves, digests_c, digests_r);
+  TIME_STOP("Pinned memory deallocation");
+
+  return 0;
 }
 
 #endif

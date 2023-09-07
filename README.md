@@ -1,3 +1,4 @@
+
 # Optimized Filecoin PC2
 Standalone C++ GPU implementation of Filecoin's PreCommit2 function
 
@@ -5,11 +6,12 @@ Standalone C++ GPU implementation of Filecoin's PreCommit2 function
 
 ## Build and Running
 ```
-1. ./build.sh
-2. ./run_pc2 -i <path> -o <path> -s <sector_size>
--i Directory containing all the layer data files from PC1
--o Output directory for tree c and tree r data
--s Sector size, for example 2KiB or 32GiB
+./build.sh
+export P2_POSEIDON_CONSTANTS=your poseidon constants
+export CACHE_PATH=your cache path
+export REPLICA_PATH=your replica path
+export SECTOR_SIZE=your sector size
+cargo test --release --test p2
 ```
 
 ## Various Notes

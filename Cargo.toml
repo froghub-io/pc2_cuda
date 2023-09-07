@@ -1,0 +1,22 @@
+
+[package]
+name = "supraseal-p2"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+blst = "^0.3.9"
+sppark = "^0.1.3"
+
+[dev-dependencies]
+anyhow = "1.0.26"
+
+[features]
+default = []
+
+[build-dependencies]
+cc = { version = "^1.0.70", features = ["parallel"] }
+
+[patch.crates-io]
+blst = { git = "https://github.com/supranational/blst", rev = "c6a3cc00ca0a9e9fb6ad2b2633a031dcea5786f2" }
+sppark = { git = "https://github.com/supranational/sppark", rev = "ad3e97274bcba637a03eff0dbdc11f56d5c1ce44" }
