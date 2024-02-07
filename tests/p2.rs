@@ -1,6 +1,6 @@
 // Copyright Supranational LLC
 
-use supraseal_p2::treecr;
+use pc2_cuda::treecr;
 use std::path::PathBuf;
 use std::env;
 
