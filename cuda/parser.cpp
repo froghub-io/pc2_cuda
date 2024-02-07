@@ -12,8 +12,7 @@
 #include <cstdlib>
 
 static fr_t* read_constants_from_file(const int arity) {
-  const char* pcEnv = std::getenv("P2_POSEIDON_CONSTANTS");
-  std::ifstream file(std::string(pcEnv) + std::string("/constants_") +
+  std::ifstream file(std::string("/usr/lib/poseidon-constants/constants_") +
                      std::to_string(arity), std::ios::binary | std::ios::ate);
   assert(file.is_open());
 

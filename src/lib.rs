@@ -14,7 +14,6 @@ pub fn treecr(
     sector_size: &str
 ) {
 
-    std::env::var("P2_POSEIDON_CONSTANTS").expect("export P2_POSEIDON_CONSTANTS=your poseidon constants");
     let c_cache_path = std::ffi::CString::new(cache_path.to_str().unwrap()).unwrap();
     let c_replica_path = std::ffi::CString::new(replica_path.to_str().unwrap()).unwrap();
     let c_sector_size = std::ffi::CString::new(sector_size).unwrap();
